@@ -1,6 +1,3 @@
-# fmcsa-revocation-monitoring
-Automated compliance monitoring pipeline using FMCSA data, with scheduled ingestion, deduplication, historical tracking, and BI reporting.
-
 # FMCSA Revocation Monitoring Automation
 
 This project demonstrates an automated compliance monitoring pipeline built to track carrier authority revocations using official FMCSA data.
