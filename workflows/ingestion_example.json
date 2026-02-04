@@ -1,0 +1,388 @@
+{
+  "name": "Revokes [public]",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=https://data.transportation.gov/resource/sa6p-acbp.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "$select", "value": "count(*)" },
+            {
+              "name": "$where",
+              "value": "=order2_effective_date LIKE '{{ $json.m0 }}' OR order2_effective_date LIKE '{{ $json.m1 }}'"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [688, 240],
+      "id": "REDACTED",
+      "name": "count",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "REDACTED",
+              "name": "limit",
+              "value": "={{ Math.min(parseInt($json.count, 10) + 1000, 10000) }}",
+              "type": "number"
+            },
+            {
+              "id": "REDACTED",
+              "name": "=count",
+              "value": "={{ parseInt($json.count, 10) }}",
+              "type": "number"
+            },
+            {
+              "id": "REDACTED",
+              "name": "run_id",
+              "value": "=revokes_{{ $now.toFormat(\"yyyyLLdd_HHmmss\") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [912, 240],
+      "id": "REDACTED",
+      "name": "limit"
+    },
+    {
+      "parameters": {
+        "url": "=https://data.transportation.gov/resource/sa6p-acbp.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "$select", "value": "*" },
+            {
+              "name": "$where",
+              "value": "=order2_effective_date LIKE '{{ $('period').item.json.m0 }}' OR order2_effective_date LIKE '{{ $('period').item.json.m1 }}'"
+            },
+            { "name": "$limit", "value": "={{ $json.limit }}" },
+            { "name": "$offset", "value": "={{ $json.offset }}" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [2032, 240],
+      "id": "REDACTED",
+      "name": "pull batch revokes",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "REDACTED", "name": "pageSize", "value": 10000, "type": "number" },
+            { "id": "REDACTED", "name": "total", "value": "={{ $json.count }}", "type": "number" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1136, 240],
+      "id": "REDACTED",
+      "name": "page"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "REDACTED", "name": "pageSize", "value": "={{ $json.pageSize }}", "type": "string" },
+            { "id": "REDACTED", "name": "total", "value": "={{ $json.total }}", "type": "number" },
+            { "id": "REDACTED", "name": "pages", "value": "={{ Math.ceil($json.total / $json.pageSize) }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1360, 240],
+      "id": "REDACTED",
+      "name": "offset"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pad2 = (n) => String(n).padStart(2, '0');\n\nconst now = new Date();\nconst m0 = `${pad2(now.getMonth() + 1)}/%/${now.getFullYear()}`;\n\nconst prev = new Date(now);\nprev.setMonth(prev.getMonth() - 1);\nconst m1 = `${pad2(prev.getMonth() + 1)}/%/${prev.getFullYear()}`;\n\nreturn [{ m0, m1 }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [464, 240],
+      "id": "REDACTED",
+      "name": "period"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generates pagination items: { offset, limit, page, pages, total, pageSize }\nconst { total, pageSize, pages } = items[0].json;\n\nconst out = [];\nfor (let i = 0; i < pages; i++) {\n  out.push({\n    json: {\n      offset: i * pageSize,\n      limit: pageSize,\n      page: i + 1,\n      pages,\n      total,\n      pageSize,\n    }\n  });\n}\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1584, 240],
+      "id": "REDACTED",
+      "name": "pages"
+    },
+    {
+      "parameters": { "options": {} },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1808, 240],
+      "id": "REDACTED",
+      "name": "batch"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [2032, 48],
+      "id": "REDACTED",
+      "name": "Limit1"
+    },
+    {
+      "parameters": {
+        "path": "revokes_public",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [16, 640],
+      "id": "REDACTED",
+      "name": "Webhook",
+      "webhookId": "REDACTED"
+    },
+    {
+      "parameters": { "options": {} },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [688, 544],
+      "id": "REDACTED",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"results\": \"No data found\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [688, 736],
+      "id": "REDACTED",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+          "conditions": [
+            {
+              "id": "REDACTED",
+              "leftValue": "={{ $json.docket_number }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "exists", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [464, 640],
+      "id": "REDACTED",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "rule": { "interval": [{ "daysInterval": 30 }] }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [32, 240],
+      "id": "REDACTED",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "REDACTED", "mode": "list" },
+        "sheetName": { "__rl": true, "value": "REDACTED", "mode": "list" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "docket_number": "={{ $json.docket_number }}",
+            "dot_number": "={{ $json.dot_number }}",
+            "type_license": "={{ $json.type_license }}",
+            "order1_serve_date": "={{ $json.order1_serve_date }}",
+            "order2_type_desc": "={{ $json.order2_type_desc }}",
+            "order2_effective_date": "={{ $json.order2_effective_date }}",
+            "updated_at": "={{ $now }}",
+            "page": "={{ $('batch').item.json.page }}",
+            "offset": "={{ $('batch').item.json.offset }}"
+          },
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [2256, 240],
+      "id": "REDACTED",
+      "name": "append batch",
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "xxx", "name": "xxx" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": { "__rl": true, "value": "REDACTED", "mode": "list" },
+        "sheetName": { "__rl": true, "value": "REDACTED", "mode": "list" },
+        "keepFirstRow": true
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [240, 240],
+      "id": "REDACTED",
+      "name": "clear",
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "xxx", "name": "xxx" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO revokes_events (\n  docket_number,\n  dot_number,\n  type_license,\n  order1_serve_date,\n  order2_type_desc,\n  order2_effective_date,\n  last_run_id\n)\nSELECT DISTINCT ON (s.docket_number, s.dot_number, s.type_license, s.order2_type_desc, s.order2_effective_date, s.order1_serve_date)\n  s.docket_number,\n  s.dot_number,\n  s.type_license,\n  CASE\n    WHEN nullif(s.order1_serve_date, '') IS NULL THEN NULL\n    ELSE to_date(s.order1_serve_date, 'MM/DD/YYYY')\n  END AS order1_serve_date,\n  s.order2_type_desc,\n  to_date(s.order2_effective_date, 'MM/DD/YYYY') AS order2_effective_date,\n  s.run_id AS last_run_id\nFROM revokes_stage s\nWHERE s.run_id = '{{ $('limit').item.json.run_id }}'\nORDER BY \n  s.docket_number, s.dot_number, s.type_license, s.order2_type_desc, s.order2_effective_date, s.order1_serve_date,\n  s.ingested_at DESC\nON CONFLICT (docket_number, dot_number, type_license, order2_type_desc, order2_effective_date, order1_serve_date)\nDO UPDATE SET\n  last_seen_at = now(),\n  last_run_id  = EXCLUDED.last_run_id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [2256, 48],
+      "id": "REDACTED",
+      "name": "dedup",
+      "credentials": {
+        "postgres": { "id": "xxx", "name": "xxx" }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "REDACTED", "name": "run_id", "value": "={{ $('limit').item.json.run_id }}", "type": "string" },
+            { "id": "REDACTED", "name": "ingested_at", "value": "={{ $now }}", "type": "string" },
+            { "id": "REDACTED", "name": "docket_number", "value": "={{ $json.docket_number }}", "type": "string" },
+            { "id": "REDACTED", "name": "dot_number", "value": "={{ $json.dot_number }}", "type": "string" },
+            { "id": "REDACTED", "name": "type_license", "value": "={{ $json.type_license }}", "type": "string" },
+            { "id": "REDACTED", "name": "order1_serve_date", "value": "={{ $json.order1_serve_date }}", "type": "string" },
+            { "id": "REDACTED", "name": "order2_type_desc", "value": "={{ $json.order2_type_desc }}", "type": "string" },
+            { "id": "REDACTED", "name": "order2_effective_date", "value": "={{ $json.order2_effective_date }}", "type": "string" },
+            { "id": "REDACTED", "name": "page", "value": "={{ $json.page }}", "type": "number" },
+            { "id": "REDACTED", "name": "offset", "value": "={{ $json.offset }}", "type": "number" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2480, 240],
+      "id": "REDACTED",
+      "name": "set fields"
+    },
+    {
+      "parameters": {
+        "schema": { "__rl": true, "mode": "list", "value": "public" },
+        "table": { "__rl": true, "mode": "list", "value": "" }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [2688, 240],
+      "id": "REDACTED",
+      "name": "staging",
+      "credentials": {
+        "postgres": { "id": "xxx", "name": "xxx" }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "compliance-team@example.com",
+        "subject": "Revocation Report",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; }\n        .container { width: 100%; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }\n        .header { background-color: #2e7d32; color: white; padding: 20px; text-align: center; }\n        .content { padding: 30px; }\n        .status-badge { display: inline-block; padding: 4px 12px; background-color: #e8f5e9; color: #2e7d32; border-radius: 16px; font-weight: bold; font-size: 14px; margin-bottom: 20px; }\n        .stats-table { width: 100%; border-collapse: collapse; margin: 20px 0; }\n        .stats-table td { padding: 12px; border-bottom: 1px solid #f0f0f0; }\n        .label { font-weight: bold; color: #666; width: 40%; }\n        .value { color: #1a1a1a; font-family: 'Courier New', Courier, monospace; }\n        .footer { background-color: #f9f9f9; color: #888; padding: 15px; text-align: center; font-size: 12px; }\n        .link { color: #2e7d32; text-decoration: underline; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h2 style=\"margin:0;\">Data Sync Report</h2>\n        </div>\n        <div class=\"content\">\n            <div class=\"status-badge\">● SUCCESSFUL EXECUTION</div>\n            <p>The automated ETL process for <b>Revocations Events</b> has been completed successfully.</p>\n            \n            <table class=\"stats-table\">\n                <tr>\n                    <td class=\"label\">Period Verified</td>\n                    <td class=\"value\">\n                        {{ $('period').item.json.m0.replace('%/', '') }} - {{ $('period').item.json.m1.replace('%/', '') }}\n                    </td>\n                </tr>\n                <tr>\n                    <td class=\"label\">Execution Time</td>\n                    <td class=\"value\">{{ $now.setZone('America/New_York').format('yyyy-LL-dd HH:mm:ss') }} EST</td>\n                </tr>\n                <tr>\n                    <td class=\"label\">Total Records (Stage)</td>\n                    <td class=\"value\">{{ $('count').item.json.count }}</td>\n                </tr>\n                <tr>\n                    <td class=\"label\">Deduplicated (Gold)</td>\n                    <td class=\"value\">Processed & Verified</td>\n                </tr>\n            </table>\n\n            <p style=\"margin-top: 30px;\"><b>Resources:</b></p>\n            <ul style=\"color: #555;\">\n                <li>The <code>revokes_events</code> table is now up to date.</li>\n                <li>BI dashboard: <a href=\"https://powerbi.example.com/demo\" class=\"link\">demo link</a>.</li>\n                <li>Snapshot: <a href=\"https://sheets.example.com/demo\" class=\"link\">demo link</a>.</li>\n            </ul>\n        </div>\n        <div class=\"footer\">\n            This is an automated notification from n8n Workflow Engine.<br>\n            Run Identifier: {{ $('limit').item.json.run_id }}<br>\n            Please do not reply to this email.\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [2688, 48],
+      "id": "REDACTED",
+      "name": "send email",
+      "webhookId": "REDACTED"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": { "__rl": true, "mode": "list", "value": "public" },
+        "table": { "__rl": true, "mode": "list", "value": "" }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [240, 640],
+      "id": "REDACTED",
+      "name": "Select rows from a table1",
+      "credentials": {
+        "postgres": { "id": "xxx", "name": "xxx" }
+      }
+    }
+  ],
+  "connections": {
+    "count": { "main": [[{ "node": "limit", "type": "main", "index": 0 }], []] },
+    "limit": { "main": [[{ "node": "page", "type": "main", "index": 0 }]] },
+    "pull batch revokes": { "main": [[{ "node": "append batch", "type": "main", "index": 0 }]] },
+    "page": { "main": [[{ "node": "offset", "type": "main", "index": 0 }]] },
+    "offset": { "main": [[{ "node": "pages", "type": "main", "index": 0 }]] },
+    "period": { "main": [[{ "node": "count", "type": "main", "index": 0 }]] },
+    "pages": { "main": [[{ "node": "batch", "type": "main", "index": 0 }]] },
+    "batch": {
+      "main": [
+        [{ "node": "Limit1", "type": "main", "index": 0 }],
+        [{ "node": "pull batch revokes", "type": "main", "index": 0 }]
+      ]
+    },
+    "Limit1": { "main": [[{ "node": "dedup", "type": "main", "index": 0 }]] },
+    "Webhook": { "main": [[{ "node": "Select rows from a table1", "type": "main", "index": 0 }]] },
+    "If": {
+      "main": [
+        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }],
+        [{ "node": "Respond to Webhook1", "type": "main", "index": 0 }]
+      ]
+    },
+    "Schedule Trigger": { "main": [[{ "node": "clear", "type": "main", "index": 0 }]] },
+    "append batch": { "main": [[{ "node": "set fields", "type": "main", "index": 0 }]] },
+    "clear": { "main": [[{ "node": "period", "type": "main", "index": 0 }]] },
+    "dedup": { "main": [[{ "node": "send email", "type": "main", "index": 0 }]] },
+    "set fields": { "main": [[{ "node": "staging", "type": "main", "index": 0 }]] },
+    "staging": { "main": [[{ "node": "batch", "type": "main", "index": 0 }]] },
+    "Select rows from a table1": { "main": [[{ "node": "If", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "REDACTED",
+  "meta": { "templateCredsSetupCompleted": true, "instanceId": "REDACTED" },
+  "id": "REDACTED",
+  "tags": []
+}
